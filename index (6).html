@@ -1,0 +1,759 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pesquisas Remuneradas</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Fundo preto com partículas sutis */
+    body {
+      background: #000000;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Partículas de fundo */
+    #particles {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .particle {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      animation: float 10s infinite ease-in-out;
+    }
+
+    @keyframes float {
+      0% { transform: translateY(100vh) scale(0.5); opacity: 0; }
+      50% { opacity: 0.5; }
+      100% { transform: translateY(-100vh) scale(1); opacity: 0; }
+    }
+
+    /* Animação de gradiente no cabeçalho */
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .header-gradient {
+      background: linear-gradient(90deg, #ff0000, #800080, #0000ff);
+      background-size: 200% 200%;
+      animation: gradientShift 5s ease infinite;
+    }
+
+    /* Animação de pulsar */
+    @keyframes pulse {
+      0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(30, 144, 255, 0.7); }
+      50% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(30, 144, 255, 0); }
+      100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(30, 144, 255, 0); }
+    }
+
+    @keyframes pulseColors {
+      0% { background: linear-gradient(135deg, #10b981, #34d399); transform: scale(1); }
+      50% { background: linear-gradient(135deg, #1e90ff, #00b7eb); transform: scale(1.1); }
+      100% { background: linear-gradient(135deg, #10b981, #34d399); transform: scale(1); }
+    }
+
+    @keyframes zoomIn {
+      0% { transform: scale(0); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    @keyframes fadeOut {
+      0% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    @keyframes fadeIn {
+      0% { opacity: 0; transform: translateY(10px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-zoom-in { animation: zoomIn 0.5s ease-out forwards; }
+    .animate-fade-out { animation: fadeOut 0.5s ease-out forwards 2.5s; }
+    .animate-pulse { animation: pulseColors 2s ease infinite; }
+    .animate-pulse-btn { animation: pulse 2s infinite; }
+    .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
+
+    /* Fogos de artifício */
+    .firework {
+      position: absolute;
+      width: 5px;
+      height: 5px;
+      background: #ff0;
+      border-radius: 50%;
+      animation: explode 1s ease-out forwards;
+    }
+
+    @keyframes explode {
+      0% { transform: scale(1); opacity: 1; }
+      100% { transform: scale(5); opacity: 0; }
+    }
+
+    /* Notificações */
+    .notification {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #1e90ff, #00ced1);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+      z-index: 1000;
+      animation: slideIn 0.5s ease-out, slideOut 0.5s ease-in 4.5s forwards;
+    }
+
+    @keyframes slideIn {
+      0% { transform: translateX(100%); opacity: 0; }
+      100% { transform: translateX(0); opacity: 1; }
+    }
+
+    @keyframes slideOut {
+      0% { transform: translateX(0); opacity: 1; }
+      100% { transform: translateX(100%); opacity: 0; }
+    }
+
+    /* Gradientes para seções */
+    .progress-section {
+      background: linear-gradient(135deg, #4b0082, #2f0047);
+    }
+
+    .questions-section {
+      background: linear-gradient(135deg, #191970, #2f2f4f);
+      border: 2px solid #ff69b4;
+      border-radius: 12px;
+      padding: 1rem;
+    }
+
+    .comments-section {
+      background: linear-gradient(135deg, #2f0047, #191970);
+      border: 2px solid #00ced1;
+      border-radius: 12px;
+      padding: 1rem;
+    }
+
+    .comment-item {
+      display: flex;
+      align-items: center;
+      background: linear-gradient(135deg, #483d8b, #2f2f4f);
+      border-radius: 8px;
+      padding: 0.5rem 1rem;
+      margin: 0.5rem 0;
+    }
+
+    .comment-item img {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      margin-right: 1rem;
+      border: 2px solid #ff69b4;
+    }
+
+    .comment-content {
+      flex: 1;
+    }
+
+    .comment-name {
+      font-weight: bold;
+      color: #ffffff;
+    }
+
+    .comment-date {
+      font-size: 0.8rem;
+      color: #a9a9a9;
+    }
+
+    .comment-message {
+      color: #d3d3d3;
+    }
+
+    /* Estilo vibrante para botões */
+    .btn-iniciar {
+      background: linear-gradient(90deg, #1e90ff, #00ced1);
+    }
+    .btn-iniciar:hover {
+      background: linear-gradient(90deg, #1c86ee, #00b7eb);
+    }
+
+    .btn-enviar {
+      background: linear-gradient(90deg, #32cd32, #adff2f);
+    }
+    .btn-enviar:hover {
+      background: linear-gradient(90deg, #2e8b57, #9acd32);
+    }
+
+    .btn-voltar {
+      background: linear-gradient(90deg, #ffa500, #ffff00);
+    }
+    .btn-voltar:hover {
+      background: linear-gradient(90deg, #ff8c00, #ffd700);
+    }
+
+    .btn-resgatar {
+      background: linear-gradient(90deg, #ff00ff, #9400d3);
+    }
+    .btn-resgatar:hover {
+      background: linear-gradient(90deg, #ee00ee, #8a2be2);
+    }
+
+    .btn-confirmar {
+      background: linear-gradient(90deg, #00ff7f, #00fa9a);
+    }
+    .btn-confirmar:hover {
+      background: linear-gradient(90deg, #00cd66, #00ff7f);
+    }
+
+    .btn-cancelar {
+      background: linear-gradient(90deg, #ff6347, #ff4500);
+    }
+    .btn-cancelar:hover {
+      background: linear-gradient(90deg, #ff4040, #ff0000);
+    }
+  </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen">
+  <!-- Partículas de fundo -->
+  <div id="particles"></div>
+
+  <div class="p-8 rounded-xl shadow-2xl w-full max-w-lg relative border-4 border-pink-500 z-10" style="background: linear-gradient(135deg, #1a1a1a, #000000);">
+    <!-- Contador de usuários online -->
+    <div class="flex justify-center mb-4">
+      <p id="usersOnline" class="text-sm text-gray-300 bg-gray-800 px-4 py-2 rounded-full">
+        <span class="text-green-400 font-bold">127</span> usuários online agora
+      </p>
+    </div>
+
+    <h1 class="text-3xl font-extrabold text-center mb-6 text-white header-gradient p-4 rounded-lg">Pesquisas Remuneradas</h1>
+
+    <!-- Progresso do usuário -->
+    <div class="mb-6 progress-section p-4 rounded-lg">
+      <p id="saldo" class="text-lg font-semibold text-white">Saldo: R$0,00</p>
+      <p id="pesquisas" class="text-lg font-semibold text-white">Pesquisas Concluídas: 0</p>
+    </div>
+
+    <!-- Seleção de pesquisa -->
+    <div id="selecaoPesquisa" class="mb-6">
+      <h2 class="text-lg font-semibold mb-2 text-white">Escolha uma Pesquisa</h2>
+      <select id="listaPesquisas" class="w-full p-3 border-2 border-purple-500 rounded-lg mb-3 focus:outline-none focus:border-purple-700 bg-gray-800 text-white">
+        <option value="">Selecione uma pesquisa</option>
+      </select>
+      <button id="iniciarPesquisa" class="w-full btn-iniciar text-white py-3 rounded-lg transition duration-200 animate-pulse-btn" disabled>
+        Iniciar Pesquisa
+      </button>
+    </div>
+
+    <!-- Formulário de pesquisa -->
+    <div id="formularioPesquisa" class="hidden mb-6 questions-section">
+      <h2 id="tituloPesquisa" class="text-lg font-semibold mb-3 text-white"></h2>
+      <div id="perguntas"></div>
+      <button type="button" id="enviarRespostas" class="w-full btn-enviar text-white py-3 rounded-lg transition duration-200 mt-4">
+        Enviar Respostas
+      </button>
+      <button type="button" id="voltar" class="w-full btn-voltar text-white py-3 rounded-lg transition duration-200 mt-2">
+        Voltar
+      </button>
+    </div>
+
+    <!-- Botão de resgatar recompensa -->
+    <button id="resgatarRecompensa" class="w-full btn-resgatar text-white py-3 rounded-lg transition duration-200 mb-4 hidden">
+      Resgatar Recompensa
+    </button>
+
+    <!-- Seção de comentários -->
+    <div class="mb-6 comments-section">
+      <h2 class="text-lg font-semibold mb-2 text-white">Comentários dos Usuários</h2>
+      <div class="flex mb-3">
+        <input type="text" id="novoComentario" class="w-full p-3 border-2 border-purple-500 rounded-lg focus:outline-none focus:border-purple-700 bg-gray-800 text-white" placeholder="Deixe seu comentário...">
+        <button id="enviarComentario" class="ml-2 btn-enviar text-white py-3 px-4 rounded-lg transition duration-200">Enviar</button>
+      </div>
+      <div id="listaComentarios"></div>
+    </div>
+
+    <!-- Modal para pagamento da taxa -->
+    <div id="modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-20">
+      <div class="p-6 rounded-lg w-full max-w-sm border-2 border-green-500" style="background: linear-gradient(135deg, #1a1a1a, #000000);">
+        <h2 class="text-xl font-bold mb-4 text-white">Pagamento da Taxa</h2>
+        <p class="mb-4 text-gray-300">Para liberar sua recompensa, é necessário pagar a taxa de R$50 via Pix.</p>
+        <p class="mb-4 text-gray-300">Chave Pix: <span class="font-mono">exemplo@exemplo.com</span></p>
+        <p class="mb-4 text-gray-300">Após o pagamento, clique abaixo para confirmar.</p>
+        <button id="confirmarPagamento" class="w-full btn-confirmar text-white py-2 rounded-lg transition duration-200 mb-2">
+          Confirmar Pagamento
+        </button>
+        <button id="fecharModal" class="w-full btn-cancelar text-white py-2 rounded-lg transition duration-200">
+          Cancelar
+        </button>
+      </div>
+    </div>
+
+    <!-- Animação de parabéns -->
+    <div id="animacaoParabens" class="hidden fixed inset-0 flex items-center justify-center pointer-events-none z-20">
+      <div class="text-white text-lg font-bold p-6 rounded-lg text-center animate-pulse">
+        Parabéns, você ganhou 25,50 reais! 💰
+      </div>
+    </div>
+
+    <!-- Contêiner para fogos de artifício -->
+    <div id="fireworks" class="fixed inset-0 pointer-events-none z-20"></div>
+  </div>
+
+  <script>
+    // Garante que o script só será executado após o DOM estar completamente carregado
+    document.addEventListener('DOMContentLoaded', () => {
+      // Dados das pesquisas (10 no total)
+      const pesquisas = [
+        { id: 1, titulo: "Hábitos de Consumo de Tecnologia", perguntas: [
+          { texto: "Qual dispositivo você usa com mais frequência?", opcoes: ["Smartphone", "Computador", "Tablet", "Outro"] },
+          { texto: "Quantas horas por dia você passa em redes sociais?", opcoes: ["Menos de 1 hora", "1-3 horas", "3-5 horas", "Mais de 5 horas"] },
+          { texto: "Você costuma comprar eletrônicos online?", opcoes: ["Sim, sempre", "Às vezes", "Raramente", "Nunca"] },
+        ]},
+        { id: 2, titulo: "Preferências Alimentares", perguntas: [
+          { texto: "Qual tipo de cozinha você prefere?", opcoes: ["Italiana", "Brasileira", "Japonesa", "Outra"] },
+          { texto: "Você segue alguma dieta específica?", opcoes: ["Nenhuma", "Vegetariana", "Vegana", "Outra"] },
+          { texto: "Com que frequência você cozinha em casa?", opcoes: ["Diariamente", "Algumas vezes por semana", "Raramente", "Nunca"] },
+        ]},
+        { id: 3, titulo: "Hábitos de Transporte", perguntas: [
+          { texto: "Qual é o seu principal meio de transporte?", opcoes: ["Carro", "Transporte público", "Bicicleta", "A pé"] },
+          { texto: "Você usa aplicativos de transporte (ex.: Uber)?", opcoes: ["Sim, frequentemente", "Às vezes", "Raramente", "Nunca"] },
+          { texto: "Você considera o impacto ambiental ao escolher transporte?", opcoes: ["Sempre", "Às vezes", "Raramente", "Nunca"] },
+        ]},
+        { id: 4, titulo: "Lazer e Entretenimento", perguntas: [
+          { texto: "Qual é o seu tipo de entretenimento favorito?", opcoes: ["Filmes/Séries", "Jogos", "Leitura", "Esportes"] },
+          { texto: "Você prefere streaming ou TV tradicional?", opcoes: ["Streaming", "TV tradicional", "Ambos", "Nenhum"] },
+          { texto: "Com que frequência você vai ao cinema?", opcoes: ["Semanalmente", "Mensalmente", "Raramente", "Nunca"] },
+        ]},
+        { id: 5, titulo: "Saúde e Bem-Estar", perguntas: [
+          { texto: "Você pratica atividades físicas regularmente?", opcoes: ["Sim, diariamente", "Algumas vezes por semana", "Raramente", "Nunca"] },
+          { texto: "Qual é a sua principal fonte de informações sobre saúde?", opcoes: ["Médicos", "Internet", "Amigos/Família", "Outros"] },
+          { texto: "Você usa aplicativos de bem-estar (ex.: meditação)?", opcoes: ["Sim, frequentemente", "Às vezes", "Raramente", "Nunca"] },
+        ]},
+        { id: 6, titulo: "Educação e Estudos", perguntas: [
+          { texto: "Qual é o seu nível de escolaridade atual?", opcoes: ["Ensino Médio", "Graduação", "Pós-graduação", "Outro"] },
+          { texto: "Você prefere estudar online ou presencialmente?", opcoes: ["Online", "Presencial", "Híbrido", "Não estudo"] },
+          { texto: "Com que frequência você faz cursos extracurriculares?", opcoes: ["Semanalmente", "Mensalmente", "Raramente", "Nunca"] },
+        ]},
+        { id: 7, titulo: "Tecnologia e Inovação", perguntas: [
+          { texto: "Você acompanha lançamentos de novas tecnologias?", opcoes: ["Sim, sempre", "Às vezes", "Raramente", "Nunca"] },
+          { texto: "Qual inovação recente mais te impressionou?", opcoes: ["Inteligência Artificial", "Realidade Virtual", "Carros Elétricos", "Outra"] },
+          { texto: "Você investe em gadgets novos com frequência?", opcoes: ["Sim, sempre", "Às vezes", "Raramente", "Nunca"] },
+        ]},
+        { id: 8, titulo: "Viagens e Turismo", perguntas: [
+          { texto: "Com que frequência você viaja por lazer?", opcoes: ["Mensalmente", "Semestralmente", "Anualmente", "Raramente"] },
+          { texto: "Qual é o seu destino de viagem favorito?", opcoes: ["Praia", "Montanha", "Cidade", "Outro"] },
+          { texto: "Você prefere viajar de avião ou carro?", opcoes: ["Avião", "Carro", "Ônibus", "Outro"] },
+        ]},
+        { id: 9, titulo: "Compras Online", perguntas: [
+          { texto: "Com que frequência você compra produtos online?", opcoes: ["Semanalmente", "Mensalmente", "Raramente", "Nunca"] },
+          { texto: "Qual categoria de produtos você mais compra online?", opcoes: ["Eletrônicos", "Roupas", "Alimentos", "Outros"] },
+          { texto: "Você confia em avaliações de outros compradores?", opcoes: ["Sim, sempre", "Às vezes", "Raramente", "Nunca"] },
+        ]},
+        { id: 10, titulo: "Sustentabilidade", perguntas: [
+          { texto: "Você separa o lixo para reciclagem?", opcoes: ["Sim, sempre", "Às vezes", "Raramente", "Nunca"] },
+          { texto: "Qual prática sustentável você mais adota?", opcoes: ["Economia de água", "Uso de transporte público", "Consumo consciente", "Outra"] },
+          { texto: "Você compra produtos ecológicos?", opcoes: ["Sim, sempre", "Às vezes", "Raramente", "Nunca"] },
+        ]},
+      ];
+
+      let saldo = 0;
+      let pesquisasConcluidas = 0;
+      const VALOR_PESQUISA = 25.50;
+      const TAXA = 50;
+      let pesquisasDisponiveis = [...pesquisas];
+
+      // Array inicial de comentários
+      let comentarios = [
+        {
+          nome: "Ana Silva",
+          foto: "https://picsum.photos/40/40?random=1",
+          data: "25/04/2025 14:30",
+          mensagem: "Adorei participar das pesquisas! O site é super intuitivo e as perguntas são bem interessantes. Obrigada!"
+        },
+        {
+          nome: "Carlos Souza",
+          foto: "https://picsum.photos/40/40?random=2",
+          data: "26/04/2025 09:15",
+          mensagem: "Muito legal ganhar dinheiro respondendo perguntas. Consegui resgatar minha recompensa rapidinho. Recomendo!"
+        },
+        {
+          nome: "Mariana Oliveira",
+          foto: "https://picsum.photos/40/40?random=3",
+          data: "27/04/2025 18:45",
+          mensagem: "As pesquisas são rápidas e fáceis de responder. Gostei muito do design do site, ficou bem colorido e animado!"
+        },
+        {
+          nome: "João Pedro",
+          foto: "https://picsum.photos/40/40?random=4",
+          data: "28/04/2025 11:20",
+          mensagem: "Obrigado pela oportunidade! Já estou indicando para os amigos. Só achei a taxa um pouco alta, mas valeu a pena."
+        }
+      ];
+
+      // Nomes fictícios para notificações e comentários automáticos
+      const nomesFicticios = [
+        "Lucas Mendes", "Fernanda Lima", "Rafael Costa", "Beatriz Almeida", "Thiago Santos",
+        "Juliana Pereira", "Diego Oliveira", "Camila Rocha", "Gustavo Silva", "Patrícia Souza"
+      ];
+
+      // Elementos do DOM com verificação de existência
+      const saldoElement = document.getElementById('saldo');
+      const pesquisasElement = document.getElementById('pesquisas');
+      const listaPesquisas = document.getElementById('listaPesquisas');
+      const iniciarPesquisaBtn = document.getElementById('iniciarPesquisa');
+      const selecaoPesquisa = document.getElementById('selecaoPesquisa');
+      const formularioPesquisa = document.getElementById('formularioPesquisa');
+      const tituloPesquisa = document.getElementById('tituloPesquisa');
+      const perguntasContainer = document.getElementById('perguntas');
+      const enviarRespostasBtn = document.getElementById('enviarRespostas');
+      const voltarBtn = document.getElementById('voltar');
+      const resgatarRecompensaBtn = document.getElementById('resgatarRecompensa');
+      const modal = document.getElementById('modal');
+      const confirmarPagamentoBtn = document.getElementById('confirmarPagamento');
+      const fecharModalBtn = document.getElementById('fecharModal');
+      const mensagemElement = document.getElementById('mensagem');
+      const animacaoParabens = document.getElementById('animacaoParabens');
+      const novoComentarioInput = document.getElementById('novoComentario');
+      const enviarComentarioBtn = document.getElementById('enviarComentario');
+      const listaComentarios = document.getElementById('listaComentarios');
+      const fireworksContainer = document.getElementById('fireworks');
+      const usersOnlineElement = document.getElementById('usersOnline');
+
+      // Verificação inicial para garantir que os elementos principais existem
+      if (!selecaoPesquisa || !formularioPesquisa) {
+        console.error('Erro: Elementos selecaoPesquisa ou formularioPesquisa não encontrados no DOM.');
+        return;
+      }
+
+      // Função para atualizar a interface
+      function atualizarInterface() {
+        if (saldoElement) saldoElement.textContent = `Saldo: R$${saldo.toFixed(2).replace('.', ',')}`;
+        if (pesquisasElement) pesquisasElement.textContent = `Pesquisas Concluídas: ${pesquisasConcluidas}`;
+        atualizarListaPesquisas();
+        atualizarListaComentarios();
+        if (resgatarRecompensaBtn) resgatarRecompensaBtn.classList.toggle('hidden', pesquisasDisponiveis.length > 0);
+      }
+
+      // Atualiza a lista de pesquisas disponíveis
+      function atualizarListaPesquisas() {
+        if (!listaPesquisas || !iniciarPesquisaBtn || !selecaoPesquisa) return;
+        listaPesquisas.innerHTML = '<option value="">Selecione uma pesquisa</option>';
+        pesquisasDisponiveis.forEach(pesquisa => {
+          const option = document.createElement('option');
+          option.value = pesquisa.id;
+          option.textContent = pesquisa.titulo;
+          listaPesquisas.appendChild(option);
+        });
+        iniciarPesquisaBtn.disabled = !listaPesquisas.value;
+        selecaoPesquisa.classList.toggle('hidden', pesquisasDisponiveis.length === 0);
+      }
+
+      // Atualiza a lista de comentários
+      function atualizarListaComentarios() {
+        if (!listaComentarios) return;
+        listaComentarios.innerHTML = '';
+        comentarios.forEach(comentario => {
+          const div = document.createElement('div');
+          div.className = 'comment-item animate-fade-in';
+          div.innerHTML = `
+            <img src="${comentario.foto}" alt="Foto de ${comentario.nome}">
+            <div class="comment-content">
+              <p class="comment-name">${comentario.nome}</p>
+              <p class="comment-date">${comentario.data}</p>
+              <p class="comment-message">${comentario.mensagem}</p>
+            </div>
+          `;
+          listaComentarios.appendChild(div);
+        });
+        // Rola automaticamente para o último comentário
+        listaComentarios.scrollTop = listaComentarios.scrollHeight;
+      }
+
+      // Mostra animação de parabéns com fogos de artifício
+      function mostrarAnimacaoParabens() {
+        if (!animacaoParabens || !fireworksContainer) return;
+        animacaoParabens.classList.remove('hidden');
+        animacaoParabens.classList.add('animate-zoom-in', 'animate-fade-out', 'animate-pulse');
+        setTimeout(() => {
+          animacaoParabens.classList.add('hidden');
+          animacaoParabens.classList.remove('animate-zoom-in', 'animate-fade-out', 'animate-pulse');
+        }, 3000);
+
+        // Fogos de artifício
+        for (let i = 0; i < 10; i++) {
+          setTimeout(() => {
+            const firework = document.createElement('div');
+            firework.className = 'firework';
+            firework.style.left = `${Math.random() * 100}vw`;
+            firework.style.top = `${Math.random() * 100}vh`;
+            firework.style.background = `hsl(${Math.random() * 360}, 100%, 50%)`;
+            fireworksContainer.appendChild(firework);
+          }, i * 200);
+        }
+      }
+
+      // Cria partículas de fundo
+      function criarParticulas() {
+        const particlesContainer = document.getElementById('particles');
+        if (!particlesContainer) return;
+        for (let i = 0; i < 20; i++) {
+          const particle = document.createElement('div');
+          particle.className = 'particle';
+          particle.style.width = `${Math.random() * 5 + 2}px`;
+          particle.style.height = particle.style.width;
+          particle.style.left = `${Math.random() * 100}vw`;
+          particle.style.animationDelay = `${Math.random() * 5}s`;
+          particlesContainer.appendChild(particle);
+        }
+      }
+
+      // Simula usuários online
+      let usersOnline = 127;
+      function atualizarUsuariosOnline() {
+        if (!usersOnlineElement) return;
+        usersOnline += Math.floor(Math.random() * 5) - 2; // Varia entre -2 e +2
+        usersOnline = Math.max(50, Math.min(200, usersOnline)); // Limita entre 50 e 200
+        usersOnlineElement.innerHTML = `<span class="text-green-400 font-bold">${usersOnline}</span> usuários online agora`;
+      }
+      setInterval(atualizarUsuariosOnline, 5000); // Atualiza a cada 5 segundos
+
+      // Notificações de atividade
+      function mostrarNotificacao() {
+        const nome = nomesFicticios[Math.floor(Math.random() * nomesFicticios.length)];
+        const acao = Math.random() > 0.5 ? `acabou de ganhar R$${VALOR_PESQUISA.toFixed(2).replace('.', ',')}!` : 'resgatou uma recompensa!';
+        const notification = document.createElement('div');
+        notification.className = 'notification';
+        notification.textContent = `${nome} ${acao}`;
+        document.body.appendChild(notification);
+        setTimeout(() => notification.remove(), 5000);
+      }
+      setInterval(mostrarNotificacao, 10000); // Mostra notificação a cada 10 segundos
+
+      // Adiciona comentários automáticos
+      const comentariosAutomaticos = [
+        "Nossa, esse site é incrível! Já ganhei dinheiro rapidinho.",
+        "Acabei de resgatar minha recompensa, muito bom!",
+        "As perguntas são super fáceis, adorei participar!",
+        "Recomendo muito, o site é bem dinâmico e divertido!",
+        "Consegui ganhar dinheiro extra, valeu a pena!"
+      ];
+      function adicionarComentarioAutomatico() {
+        const nome = nomesFicticios[Math.floor(Math.random() * nomesFicticios.length)];
+        const mensagem = comentariosAutomaticos[Math.floor(Math.random() * comentariosAutomaticos.length)];
+        const novoComentario = {
+          nome: nome,
+          foto: `https://picsum.photos/40/40?random=${Math.floor(Math.random() * 1000)}`,
+          data: new Date().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+          mensagem: mensagem
+        };
+        comentarios.push(novoComentario);
+        atualizarListaComentarios();
+      }
+      setInterval(adicionarComentarioAutomatico, 20000); // Novo comentário a cada 20 segundos
+
+      // Evento de enviar comentário
+      if (enviarComentarioBtn) {
+        enviarComentarioBtn.addEventListener('click', () => {
+          const mensagem = novoComentarioInput?.value.trim();
+          if (mensagem) {
+            const novoComentario = {
+              nome: "Usuário Anônimo",
+              foto: `https://picsum.photos/40/40?random=${Math.floor(Math.random() * 1000)}`,
+              data: new Date().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+              mensagem: mensagem
+            };
+            comentarios.push(novoComentario);
+            if (novoComentarioInput) novoComentarioInput.value = '';
+            atualizarListaComentarios();
+          } else if (mensagemElement) {
+            mensagemElement.textContent = 'Por favor, escreva um comentário antes de enviar.';
+            mensagemElement.classList.remove('hidden', 'text-green-500');
+            mensagemElement.classList.add('text-red-500');
+            setTimeout(() => mensagemElement.classList.add('hidden'), 3000);
+          }
+        });
+      }
+
+      // Evento de seleção de pesquisa
+      if (listaPesquisas) {
+        listaPesquisas.addEventListener('change', () => {
+          if (iniciarPesquisaBtn) iniciarPesquisaBtn.disabled = !listaPesquisas.value;
+        });
+      }
+
+      // Evento de iniciar pesquisa
+      if (iniciarPesquisaBtn) {
+        iniciarPesquisaBtn.addEventListener('click', () => {
+          const pesquisaId = parseInt(listaPesquisas?.value);
+          const pesquisa = pesquisas.find(p => p.id === pesquisaId);
+          if (pesquisa) {
+            selecaoPesquisa.classList.add('hidden');
+            formularioPesquisa.classList.remove('hidden');
+            if (mensagemElement) mensagemElement.classList.add('hidden');
+            if (tituloPesquisa) tituloPesquisa.textContent = pesquisa.titulo;
+            if (perguntasContainer) {
+              perguntasContainer.innerHTML = '';
+              pesquisa.perguntas.forEach((pergunta, index) => {
+                const div = document.createElement('div');
+                div.className = 'mb-4';
+                div.innerHTML = `
+                  <p class="font-semibold text-white">${index + 1}. ${pergunta.texto}</p>
+                  ${pergunta.opcoes.map((opcao, i) => `
+                    <label class="block my-2">
+                      <input type="radio" name="pergunta${index}" value="${opcao}" class="mr-2 text-blue-500 focus:ring-blue-500" required>
+                      <span class="text-gray-300">${opcao}</span>
+                    </label>
+                  `).join('')}
+                `;
+                perguntasContainer.appendChild(div);
+              });
+            }
+          }
+        });
+      }
+
+      // Evento de enviar respostas
+      if (enviarRespostasBtn) {
+        enviarRespostasBtn.addEventListener('click', () => {
+          const pesquisaId = parseInt(listaPesquisas?.value);
+          const pesquisa = pesquisas.find(p => p.id === pesquisaId);
+          let todasRespondidas = true;
+
+          if (pesquisa) {
+            pesquisa.perguntas.forEach((_, index) => {
+              const opcoes = document.getElementsByName(`pergunta${index}`);
+              if (!Array.from(opcoes).some(opcao => opcao.checked)) todasRespondidas = false;
+            });
+          }
+
+          if (!todasRespondidas) {
+            if (mensagemElement) {
+              mensagemElement.textContent = 'Por favor, responda todas as perguntas antes de enviar.';
+              mensagemElement.classList.remove('hidden', 'text-green-500');
+              mensagemElement.classList.add('text-red-500');
+              setTimeout(() => mensagemElement.classList.add('hidden'), 3000);
+            }
+            return;
+          }
+
+          saldo += VALOR_PESQUISA;
+          pesquisasConcluidas += 1;
+          pesquisasDisponiveis = pesquisasDisponiveis.filter(p => p.id !== pesquisaId);
+          formularioPesquisa.classList.add('hidden');
+          selecaoPesquisa.classList.remove('hidden');
+          atualizarInterface();
+          mostrarAnimacaoParabens();
+          if (perguntasContainer) perguntasContainer.innerHTML = '';
+        });
+      }
+
+      // Evento do botão Voltar
+      if (voltarBtn) {
+        voltarBtn.addEventListener('click', () => {
+          formularioPesquisa.classList.add('hidden');
+          selecaoPesquisa.classList.remove('hidden');
+          if (mensagemElement) mensagemElement.classList.add('hidden');
+          if (perguntasContainer) perguntasContainer.innerHTML = '';
+        });
+      }
+
+      // Evento de resgatar recompensa
+      if (resgatarRecompensaBtn) {
+        resgatarRecompensaBtn.addEventListener('click', () => {
+          if (saldo > 0) {
+            if (modal) modal.classList.remove('hidden');
+          } else if (mensagemElement) {
+            mensagemElement.textContent = 'Você não tem saldo suficiente para resgatar.';
+            mensagemElement.classList.remove('hidden', 'text-green-500');
+            mensagemElement.classList.add('text-red-500');
+            setTimeout(() => mensagemElement.classList.add('hidden'), 3000);
+          }
+        });
+      }
+
+      // Evento de confirmar pagamento
+      if (confirmarPagamentoBtn) {
+        confirmarPagamentoBtn.addEventListener('click', () => {
+          if (saldo >= TAXA) {
+            const valorRecebido = saldo - TAXA;
+            saldo = 0;
+            if (modal) modal.classList.add('hidden');
+            if (mensagemElement) {
+              mensagemElement.textContent = `Pagamento confirmado! Você recebeu R$${valorRecebido.toFixed(2).replace('.', ',')} via Pix.`;
+              mensagemElement.classList.remove('hidden', 'text-red-500');
+              mensagemElement.classList.add('text-green-500');
+              setTimeout(() => mensagemElement.classList.add('hidden'), 5000);
+            }
+            atualizarInterface();
+          } else {
+            if (modal) modal.classList.add('hidden');
+            if (mensagemElement) {
+              mensagemElement.textContent = 'Saldo insuficiente para pagar a taxa de R$50.';
+              mensagemElement.classList.remove('hidden', 'text-green-500');
+              mensagemElement.classList.add('text-red-500');
+              setTimeout(() => mensagemElement.classList.add('hidden'), 3000);
+            }
+          }
+        });
+      }
+
+      // Evento de fechar modal
+      if (fecharModalBtn) {
+        fecharModalBtn.addEventListener('click', () => {
+          if (modal) modal.classList.add('hidden');
+        });
+      }
+
+      // Inicializa partículas e interface
+      criarParticulas();
+      atualizarInterface();
+    });
+  </script>
+</body>
+</html>
